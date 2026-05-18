@@ -78,8 +78,8 @@ function showToast(msg) {
 // ── 渲染主函数 ──
 function render() {
   const app = $('app');
-  updateNavbar();
   try {
+    updateNavbar();
     switch (State.view) {
       case 'home':    app.innerHTML = renderHome(); break;
       case 'module':  app.innerHTML = renderModule(); break;
@@ -87,14 +87,13 @@ function render() {
       case 'quiz':    app.innerHTML = renderQuiz(); break;
       case 'search':  app.innerHTML = renderSearch(); break;
     }
+    app.classList.remove('page-enter');
+    void app.offsetWidth;
+    app.classList.add('page-enter');
+    attachEvents();
   } catch(e) {
     app.innerHTML = `<div style="padding:60px 32px;text-align:center;color:var(--text2)">加载出错，请刷新页面<br><small style="color:var(--text3)">${e.message}</small></div>`;
-    return;
   }
-  app.classList.remove('page-enter');
-  void app.offsetWidth;
-  app.classList.add('page-enter');
-  attachEvents();
 }
 
 // ── 首页 ──
@@ -549,8 +548,6 @@ function initSearch() {
 document.addEventListener('DOMContentLoaded', () => {
   render();
   initSearch();
-
-  document.querySelector('.nav-logo')?.addEventListener('click', () => navigate('home'));
 
   document.querySelector('.lang-toggle')?.addEventListener('click', () => {
     toggleLang();
