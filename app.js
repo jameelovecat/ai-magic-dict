@@ -512,12 +512,6 @@ function attachEvents() {
     btn.addEventListener('click', () => navigate('concept', { conceptId: btn.dataset.conceptId }));
   });
 
-  document.querySelectorAll('[data-nav="module"][data-action!="start-quiz"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mid = parseInt(btn.dataset.moduleId);
-      if (mid) navigate('module', { moduleId: mid });
-    });
-  });
 }
 
 function startQuiz(mid) {
