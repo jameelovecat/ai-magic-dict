@@ -1,5 +1,6 @@
 demo-*.html
 .DS_Store
+concepts.csv
 
 # wrangler files
 .wrangler
