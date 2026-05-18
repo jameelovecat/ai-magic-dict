@@ -65,6 +65,17 @@ function updateNavbar() {
   document.querySelector('.nav-logo').textContent = t('site_name');
 }
 
+// ── XP 获得 ──
+function checkXPGain(amount) {
+  const prevLevel = XP.level().num;
+  const newTotal = XP.add(amount);
+  const newLevel = XP.level(newTotal).num;
+  showToast(`+${amount} XP`);
+  if (newLevel > prevLevel) {
+    setTimeout(() => showToast(`✨ 升级！你现在是「${XP.level(newTotal).name}」`), 700);
+  }
+}
+
 // ── Toast 提示 ──
 function showToast(msg) {
   const el = document.createElement('div');
@@ -101,6 +112,8 @@ function renderHome() {
   const total = Progress.totalConcepts();
   const learned = Progress.totalLearned();
   const unlockedCount = MODULES.filter(m => m.unlocked).length;
+  const streak = Streak.count();
+  const lv = XP.level();
 
   const moduleCards = MODULES.map(m => {
     const prog = moduleProgress(m);
@@ -151,6 +164,15 @@ function renderHome() {
         <div class="stat-item"><span class="stat-value">${learned}</span><span class="stat-label">${t('stat_learned')}</span></div>
         <div class="stat-item"><span class="stat-value">${total}</span><span class="stat-label">${t('stat_total')}</span></div>
         <div class="stat-item"><span class="stat-value">${unlockedCount}</span><span class="stat-label">${t('stat_open')}</span></div>
+      </div>
+      <div class="gamification-bar">
+        <div class="streak-badge ${streak >= 3 ? 'streak-hot' : ''}">🔥 ${streak > 0 ? streak + ' 天连续修炼' : '今日开始修炼'}</div>
+        <div class="xp-info">
+          <span class="level-tag">Lv.${lv.num}</span>
+          <span class="level-name">${lv.name}</span>
+          <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${lv.pct}%"></div></div>
+          <span class="xp-text">${lv.xp}${lv.nextXP !== Infinity ? ' / ' + lv.nextXP + ' XP' : ' XP · 已满级'}</span>
+        </div>
       </div>
       ${learned > 0 ? `<button class="review-btn" data-action="start-review">${t('review_btn')}</button>` : ''}
       <div class="divider"><div class="divider-line"></div><span class="divider-gem">✦</span><div class="divider-line"></div></div>
@@ -474,12 +496,14 @@ function attachEvents() {
         else if (i === idx && idx !== correct) b.classList.add('wrong');
       });
       document.getElementById('challenge-reveal')?.classList.add('visible');
+      if (idx === correct) checkXPGain(5);
     });
   });
 
   document.querySelectorAll('[data-action="mark-learned"]').forEach(btn => {
     btn.addEventListener('click', e => {
       Progress.markLearned(btn.dataset.conceptId);
+      checkXPGain(10);
       const rect = btn.getBoundingClientRect();
       triggerSparkle(rect.left + rect.width / 2, rect.top + rect.height / 2);
       btn.textContent = t('btn_already_learned');
@@ -516,7 +540,7 @@ function attachEvents() {
         if (i === correct) o.classList.add('correct');
         else if (i === idx && idx !== correct) o.classList.add('wrong');
       });
-      if (idx === correct) State.quizState.score++;
+      if (idx === correct) { State.quizState.score++; checkXPGain(8); }
       document.getElementById('quiz-explanation')?.classList.add('visible');
       document.getElementById('quiz-next-btn')?.classList.add('visible');
     });
@@ -606,6 +630,19 @@ function initSearch() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  Streak.update();
+
+  // 开场动画：每个 session 只播一次
+  const introEl = document.getElementById('intro-screen');
+  if (introEl) {
+    if (sessionStorage.getItem('intro_shown')) {
+      introEl.remove();
+    } else {
+      sessionStorage.setItem('intro_shown', '1');
+      setTimeout(() => introEl.remove(), 3100);
+    }
+  }
+
   render();
   initSearch();
 

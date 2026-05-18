@@ -1214,3 +1214,56 @@ const Progress = {
     return MODULES.reduce((sum, m) => sum + m.concepts.length, 0);
   }
 };
+
+// 连续打卡
+const Streak = {
+  key: 'aimd_streak',
+  get() {
+    try { return JSON.parse(localStorage.getItem(this.key)) || { count: 0, lastDate: '' }; } catch { return { count: 0, lastDate: '' }; }
+  },
+  update() {
+    const today = new Date().toISOString().slice(0, 10);
+    const s = this.get();
+    if (s.lastDate === today) return s.count;
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const count = s.lastDate === yesterday ? s.count + 1 : 1;
+    localStorage.setItem(this.key, JSON.stringify({ count, lastDate: today }));
+    return count;
+  },
+  count() { return this.get().count; }
+};
+
+// 经验值与等级
+const XP = {
+  key: 'aimd_xp',
+  levels: [
+    { min: 0,    name: '麻瓜',        next: 80   },
+    { min: 80,   name: '霍格沃茨新生', next: 220  },
+    { min: 220,  name: '见习巫师',    next: 450  },
+    { min: 450,  name: '初级魔法师',  next: 750  },
+    { min: 750,  name: '中级魔法师',  next: 1150 },
+    { min: 1150, name: '高级魔法师',  next: 1650 },
+    { min: 1650, name: '魔法导师',    next: 2300 },
+    { min: 2300, name: '大魔法师',    next: Infinity }
+  ],
+  get() {
+    try { return parseInt(localStorage.getItem(this.key)) || 0; } catch { return 0; }
+  },
+  add(amount) {
+    const prev = this.get();
+    const next = prev + amount;
+    localStorage.setItem(this.key, String(next));
+    return next;
+  },
+  level(xp) {
+    xp = xp !== undefined ? xp : this.get();
+    for (let i = this.levels.length - 1; i >= 0; i--) {
+      if (xp >= this.levels[i].min) {
+        const l = this.levels[i];
+        const pct = l.next === Infinity ? 100 : Math.round((xp - l.min) / (l.next - l.min) * 100);
+        return { num: i + 1, name: l.name, xp, nextXP: l.next, pct };
+      }
+    }
+    return { num: 1, name: '麻瓜', xp, nextXP: 80, pct: 0 };
+  }
+};
