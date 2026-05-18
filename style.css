@@ -1,58 +1,92 @@
 /* AI魔法词典 — 羊皮卷主题 */
 
-/* ── 开场动画 ── */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=Noto+Serif+SC:wght@300;400;500&family=Inter:wght@300;400;500&display=swap');
+
+/* ── 开场动画：猫头鹰送信 ── */
 #intro-screen {
   position: fixed; inset: 0; z-index: 300;
-  background: #130b02;
+  background: #0d0702;
   display: flex; align-items: center; justify-content: center;
-  animation: intro-fade-out 0.7s ease forwards 2.3s;
+  animation: intro-fade-out 0.8s ease forwards 3.8s;
+  overflow: hidden;
 }
-#intro-screen.hidden { display: none; }
 @keyframes intro-fade-out { to { opacity: 0; pointer-events: none; } }
-.intro-content {
-  text-align: center; position: relative; z-index: 1;
-  animation: intro-rise 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
+
+/* 星空背景 */
+.intro-stars { position: absolute; inset: 0; pointer-events: none; }
+.istar {
+  position: absolute; border-radius: 50%; background: #fff;
+  animation: star-twinkle 2s ease-in-out infinite alternate;
 }
-@keyframes intro-rise {
-  from { opacity: 0; transform: translateY(24px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+.is1 { width:2px;height:2px; left:12%;top:18%; animation-delay:0s; opacity:0.6; }
+.is2 { width:3px;height:3px; left:80%;top:12%; animation-delay:0.4s; opacity:0.5; }
+.is3 { width:2px;height:2px; left:55%;top:8%; animation-delay:0.8s; opacity:0.7; }
+.is4 { width:2px;height:2px; left:25%;top:75%; animation-delay:1.2s; opacity:0.4; }
+.is5 { width:3px;height:3px; left:70%;top:70%; animation-delay:0.6s; opacity:0.5; }
+.is6 { width:2px;height:2px; left:90%;top:40%; animation-delay:1.0s; opacity:0.6; }
+@keyframes star-twinkle { from { opacity:0.2; } to { opacity:0.9; } }
+
+/* 猫头鹰 */
+.intro-owl {
+  position: absolute;
+  font-size: clamp(52px, 8vw, 72px);
+  left: 50%; top: 28%;
+  transform: translateX(-50%);
+  animation: owl-sequence 4.6s ease forwards;
+  filter: drop-shadow(0 0 18px rgba(201,168,76,0.4));
+}
+@keyframes owl-sequence {
+  0%   { transform: translateX(calc(-50% + 120vw)) translateY(-80px) rotate(25deg) scaleX(-1); opacity:0; }
+  8%   { opacity: 1; }
+  28%  { transform: translateX(-50%) translateY(0px) rotate(0deg) scaleX(-1); opacity:1; }
+  36%  { transform: translateX(-50%) translateY(-12px) rotate(-4deg) scaleX(-1); opacity:1; }
+  44%  { transform: translateX(-50%) translateY(4px) rotate(4deg) scaleX(-1); opacity:1; }
+  52%  { transform: translateX(-50%) translateY(-8px) rotate(-2deg) scaleX(-1); opacity:1; }
+  62%  { transform: translateX(-50%) translateY(0px) rotate(0deg) scaleX(-1); opacity:1; }
+  76%  { transform: translateX(-50%) translateY(-4px) rotate(-8deg) scaleX(-1); opacity:1; }
+  100% { transform: translateX(calc(-50% + 120vw)) translateY(-160px) rotate(30deg) scaleX(-1); opacity:0; }
+}
+
+/* 信封 + 内容 */
+.intro-letter-wrap {
+  position: absolute;
+  left: 50%; top: 56%;
+  transform: translateX(-50%);
+  animation: letter-sequence 4.6s ease forwards;
+}
+@keyframes letter-sequence {
+  0%   { opacity:0; transform: translateX(-50%) translateY(-20px) scaleY(0.05); }
+  35%  { opacity:0; transform: translateX(-50%) translateY(-20px) scaleY(0.05); }
+  52%  { opacity:1; transform: translateX(-50%) translateY(0) scaleY(1); }
+  80%  { opacity:1; transform: translateX(-50%) translateY(0) scaleY(1); }
+  100% { opacity:0; transform: translateX(-50%) translateY(0) scaleY(1); }
+}
+.intro-letter-card {
+  text-align: center;
+  padding: 24px 36px;
+  background: rgba(30,15,4,0.6);
+  border: 1px solid rgba(201,168,76,0.35);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  min-width: 280px;
 }
 .intro-eyebrow {
   font-family: 'Cinzel', serif;
-  color: rgba(201,168,76,0.55);
-  font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
-  margin-bottom: 18px;
+  color: rgba(201,168,76,0.5);
+  font-size: 9px; letter-spacing: 4px; text-transform: uppercase;
+  margin-bottom: 14px;
 }
 .intro-logo {
   font-family: 'Cinzel Decorative', serif;
   color: #C9A84C;
-  font-size: clamp(28px, 6vw, 52px);
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-shadow: 0 0 30px rgba(201,168,76,0.7), 0 0 70px rgba(201,168,76,0.35);
+  font-size: clamp(24px, 5vw, 44px);
+  font-weight: 700; letter-spacing: 3px;
+  text-shadow: 0 0 25px rgba(201,168,76,0.8), 0 0 60px rgba(201,168,76,0.4);
 }
 .intro-subtitle {
   font-family: 'Noto Serif SC', serif;
   color: rgba(201,168,76,0.45);
-  font-size: 13px; margin-top: 14px; letter-spacing: 1px;
-}
-.intro-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.ip {
-  position: absolute; border-radius: 50%; background: #C9A84C;
-  animation: ip-float 2.8s ease-in-out infinite;
-  opacity: 0;
-}
-.ip1 { width:5px;height:5px; left:18%;top:28%; animation-delay:0.4s; }
-.ip2 { width:4px;height:4px; left:76%;top:22%; animation-delay:0.8s; }
-.ip3 { width:3px;height:3px; left:33%;top:72%; animation-delay:1.2s; }
-.ip4 { width:6px;height:6px; left:62%;top:63%; animation-delay:0.6s; }
-.ip5 { width:4px;height:4px; left:8%; top:55%; animation-delay:1.0s; }
-.ip6 { width:3px;height:3px; left:87%;top:42%; animation-delay:1.4s; }
-@keyframes ip-float {
-  0%   { opacity:0; transform:translateY(0) scale(1); }
-  35%  { opacity:0.9; }
-  70%  { opacity:0.4; }
-  100% { opacity:0; transform:translateY(-35px) scale(0.6); }
+  font-size: 13px; margin-top: 10px; letter-spacing: 1px;
 }
 
 /* ── 游戏化面板（首页） ── */
@@ -102,8 +136,6 @@
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=Noto+Serif+SC:wght@300;400;500&family=Inter:wght@300;400;500&display=swap');
 
 :root {
   --bg:        #F0E6CE;

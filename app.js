@@ -639,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
       introEl.remove();
     } else {
       sessionStorage.setItem('intro_shown', '1');
-      setTimeout(() => introEl.remove(), 3100);
+      setTimeout(() => introEl.remove(), 4700);
     }
   }
 
