@@ -65,16 +65,31 @@ function updateNavbar() {
   document.querySelector('.nav-logo').textContent = t('site_name');
 }
 
+// ── Toast 提示 ──
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('toast-show'));
+  setTimeout(() => { el.classList.remove('toast-show'); setTimeout(() => el.remove(), 300); }, 1800);
+}
+
 // ── 渲染主函数 ──
 function render() {
   const app = $('app');
   updateNavbar();
-  switch (State.view) {
-    case 'home':    app.innerHTML = renderHome(); break;
-    case 'module':  app.innerHTML = renderModule(); break;
-    case 'concept': app.innerHTML = renderConcept(); break;
-    case 'quiz':    app.innerHTML = renderQuiz(); break;
-    case 'search':  app.innerHTML = renderSearch(); break;
+  try {
+    switch (State.view) {
+      case 'home':    app.innerHTML = renderHome(); break;
+      case 'module':  app.innerHTML = renderModule(); break;
+      case 'concept': app.innerHTML = renderConcept(); break;
+      case 'quiz':    app.innerHTML = renderQuiz(); break;
+      case 'search':  app.innerHTML = renderSearch(); break;
+    }
+  } catch(e) {
+    app.innerHTML = `<div style="padding:60px 32px;text-align:center;color:var(--text2)">加载出错，请刷新页面<br><small style="color:var(--text3)">${e.message}</small></div>`;
+    return;
   }
   app.classList.remove('page-enter');
   void app.offsetWidth;
@@ -540,5 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.lang-toggle')?.addEventListener('click', () => {
     toggleLang();
     render();
+    showToast(getLang() === 'zh-TW' ? '已切換為繁體中文' : '已切换为简体中文');
   });
 });

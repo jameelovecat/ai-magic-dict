@@ -578,3 +578,14 @@ body::before {
 }
 
 .page-enter { animation: fade-in 0.35s ease; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: var(--text); color: #F0E6CE;
+  padding: 10px 20px; border-radius: 100px;
+  font-size: 13px; font-family: 'Noto Serif SC', serif;
+  opacity: 0; transition: opacity 0.25s, transform 0.25s;
+  z-index: 999; pointer-events: none; white-space: nowrap;
+}
+.toast.toast-show { opacity: 1; transform: translateX(-50%) translateY(0); }
