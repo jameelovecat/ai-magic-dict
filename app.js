@@ -65,6 +65,89 @@ function updateNavbar() {
   document.querySelector('.nav-logo').textContent = t('site_name');
 }
 
+// ── GitHub Gist 同步 ──
+let _ghClientId = '';
+
+async function loadGithubConfig() {
+  try {
+    const resp = await fetch('/auth/config');
+    if (resp.ok) { const d = await resp.json(); _ghClientId = d.clientId || ''; }
+  } catch {}
+}
+
+function githubLogin() {
+  if (!_ghClientId) { showToast(t('gh_not_configured')); return; }
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem('gh_oauth_state', state);
+  const redirectUri = encodeURIComponent(`${location.origin}/auth/callback`);
+  location.href = `https://github.com/login/oauth/authorize?client_id=${_ghClientId}&scope=gist&redirect_uri=${redirectUri}&state=${state}`;
+}
+
+const GistSync = {
+  tokenKey: 'aimd_gh_token',
+  gistIdKey: 'aimd_gist_id',
+  getToken() { return localStorage.getItem(this.tokenKey); },
+  getGistId() { return localStorage.getItem(this.gistIdKey); },
+
+  async sync() {
+    const token = this.getToken();
+    if (!token) { showToast(t('gh_not_configured')); return; }
+    const payload = JSON.stringify({
+      progress: Progress.get(),
+      xp: XP.get(),
+      streak: Streak.get(),
+      syncedAt: new Date().toISOString()
+    }, null, 2);
+    const gistId = this.getGistId();
+    try {
+      const url = gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists';
+      const method = gistId ? 'PATCH' : 'POST';
+      const body = gistId
+        ? { files: { 'aimd_progress.json': { content: payload } } }
+        : { description: 'AI魔法词典 — 学习进度', public: false, files: { 'aimd_progress.json': { content: payload } } };
+      const resp = await fetch(url, {
+        method,
+        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' },
+        body: JSON.stringify(body)
+      });
+      if (resp.status === 401) {
+        localStorage.removeItem(this.tokenKey);
+        showToast(t('gh_expire')); render(); return;
+      }
+      if (!resp.ok) throw new Error('status ' + resp.status);
+      const data = await resp.json();
+      if (!gistId) localStorage.setItem(this.gistIdKey, data.id);
+      showToast(t('gh_sync_ok'));
+    } catch (e) { showToast('同步失败：' + e.message); }
+  },
+
+  async restore() {
+    const token = this.getToken();
+    const gistId = this.getGistId();
+    if (!token || !gistId) { showToast(t('gh_no_backup')); return; }
+    try {
+      const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!resp.ok) throw new Error('读取失败');
+      const data = await resp.json();
+      const content = data.files['aimd_progress.json']?.content;
+      if (!content) throw new Error('备份文件不存在');
+      const backup = JSON.parse(content);
+      if (backup.progress) localStorage.setItem(Progress.key, JSON.stringify(backup.progress));
+      if (backup.xp !== undefined) localStorage.setItem(XP.key, String(backup.xp));
+      if (backup.streak) localStorage.setItem(Streak.key, JSON.stringify(backup.streak));
+      showToast(t('gh_restore_ok')); render();
+    } catch (e) { showToast('恢复失败：' + e.message); }
+  },
+
+  logout() {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.gistIdKey);
+    showToast('已断开 GitHub 连接'); render();
+  }
+};
+
 // ── XP 获得 ──
 function checkXPGain(amount) {
   const prevLevel = XP.level().num;
@@ -173,6 +256,15 @@ function renderHome() {
           <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${lv.pct}%"></div></div>
           <span class="xp-text">${lv.xp}${lv.nextXP !== Infinity ? ' / ' + lv.nextXP + ' XP' : ' XP · 已满级'}</span>
         </div>
+      </div>
+      <div class="github-sync-bar">
+        ${GistSync.getToken()
+          ? `<span class="sync-status">${t('gh_connected')}</span>
+             <button class="sync-btn" data-action="gist-sync">${t('gh_sync')}</button>
+             <button class="sync-btn ghost" data-action="gist-restore">${t('gh_restore')}</button>
+             <button class="sync-btn danger" data-action="gist-logout">${t('gh_disconnect')}</button>`
+          : `<button class="sync-btn connect" data-action="gist-login">${t('gh_connect')}</button>`
+        }
       </div>
       ${learned > 0 ? `<button class="review-btn" data-action="start-review">${t('review_btn')}</button>` : ''}
       <div class="divider"><div class="divider-line"></div><span class="divider-gem">✦</span><div class="divider-line"></div></div>
@@ -504,6 +596,7 @@ function attachEvents() {
     btn.addEventListener('click', e => {
       Progress.markLearned(btn.dataset.conceptId);
       checkXPGain(10);
+      if (GistSync.getToken()) setTimeout(() => GistSync.sync(), 1000);
       const rect = btn.getBoundingClientRect();
       triggerSparkle(rect.left + rect.width / 2, rect.top + rect.height / 2);
       btn.textContent = t('btn_already_learned');
@@ -518,6 +611,19 @@ function attachEvents() {
 
   document.querySelectorAll('[data-action="start-review"]').forEach(btn => {
     btn.addEventListener('click', startGlobalReview);
+  });
+
+  document.querySelectorAll('[data-action="gist-login"]').forEach(btn => {
+    btn.addEventListener('click', githubLogin);
+  });
+  document.querySelectorAll('[data-action="gist-sync"]').forEach(btn => {
+    btn.addEventListener('click', () => GistSync.sync());
+  });
+  document.querySelectorAll('[data-action="gist-restore"]').forEach(btn => {
+    btn.addEventListener('click', () => GistSync.restore());
+  });
+  document.querySelectorAll('[data-action="gist-logout"]').forEach(btn => {
+    btn.addEventListener('click', () => GistSync.logout());
   });
 
   document.querySelectorAll('[data-action="show-share"]').forEach(btn => {
@@ -631,6 +737,27 @@ function initSearch() {
 
 document.addEventListener('DOMContentLoaded', () => {
   Streak.update();
+  loadGithubConfig();
+
+  // 处理 GitHub OAuth 回调
+  const hash = window.location.hash;
+  if (hash.startsWith('#gh_token=') || hash.includes('gh_token=')) {
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get('gh_token');
+    const returnedState = params.get('gh_state') || '';
+    const savedState = sessionStorage.getItem('gh_oauth_state') || '';
+    history.replaceState(null, '', window.location.pathname);
+    if (token && (!savedState || returnedState === savedState)) {
+      localStorage.setItem(GistSync.tokenKey, decodeURIComponent(token));
+      sessionStorage.removeItem('gh_oauth_state');
+      showToast('✓ GitHub 已连接，正在同步进度…');
+      setTimeout(() => GistSync.sync(), 600);
+    }
+  } else if (hash.includes('auth_error=')) {
+    const params = new URLSearchParams(hash.slice(1));
+    history.replaceState(null, '', window.location.pathname);
+    showToast('GitHub 连接失败：' + decodeURIComponent(params.get('auth_error') || ''));
+  }
 
   // 开场动画：每个 session 只播一次
   const introEl = document.getElementById('intro-screen');

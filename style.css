@@ -137,6 +137,40 @@
   white-space: nowrap;
 }
 
+/* ── GitHub 同步栏 ── */
+.github-sync-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; flex-wrap: wrap;
+  margin: 0 auto 16px;
+  max-width: 480px;
+}
+.sync-status {
+  font-size: 12px; color: var(--green);
+  font-family: 'Inter', sans-serif;
+  margin-right: 4px;
+}
+.sync-btn {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sync-btn:hover { background: var(--gold-dim); color: var(--text); }
+.sync-btn.connect {
+  border-color: var(--gold2);
+  color: var(--gold);
+  font-size: 13px; padding: 7px 18px;
+}
+.sync-btn.connect:hover { background: var(--gold-dim); }
+.sync-btn.ghost { opacity: 0.7; }
+.sync-btn.danger { border-color: rgba(180,60,60,0.3); color: #a04040; }
+.sync-btn.danger:hover { background: rgba(180,60,60,0.08); }
+
 :root {
   --bg:        #F0E6CE;
   --bg-mid:    #EDE0C4;
