@@ -378,6 +378,11 @@ function renderQuizResult() {
         <div class="quiz-result-score">${t('quiz_score_prefix')} ${qs.score} / ${qs.questions.length} ${t('quiz_score_suffix')}（${pct}%）</div>
         <div class="quiz-result-rank">${rank}</div>
         <div class="quiz-result-actions">${actions}</div>
+        <button class="share-trigger-btn" data-action="show-share"
+          data-score="${qs.score}" data-total="${qs.questions.length}"
+          data-rank="${rank}" data-icon="${icon}" data-pct="${pct}">
+          ${t('share_btn')}
+        </button>
       </div>
     </div>`;
 }
@@ -491,6 +496,15 @@ function attachEvents() {
     btn.addEventListener('click', startGlobalReview);
   });
 
+  document.querySelectorAll('[data-action="show-share"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      showShareCard(
+        parseInt(btn.dataset.score), parseInt(btn.dataset.total),
+        btn.dataset.rank, btn.dataset.icon, parseInt(btn.dataset.pct)
+      );
+    });
+  });
+
   document.querySelectorAll('.quiz-option').forEach(opt => {
     opt.addEventListener('click', () => {
       if (opt.disabled) return;
@@ -520,6 +534,41 @@ function attachEvents() {
     btn.addEventListener('click', () => navigate('concept', { conceptId: btn.dataset.conceptId }));
   });
 
+}
+
+function showShareCard(score, total, rank, icon, pct) {
+  const learned = Progress.totalLearned();
+  const totalConcepts = Progress.totalConcepts();
+  const learnedPct = totalConcepts ? Math.round(learned / totalConcepts * 100) : 0;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'share-overlay';
+  overlay.innerHTML = `
+    <div class="share-card">
+      <div class="share-card-logo">AI魔法词典</div>
+      <div class="share-card-eyebrow">Grimoire of Artificial Intelligence</div>
+      <div class="share-card-divider"></div>
+      <div class="share-card-section">
+        <div class="share-card-label">${t('share_progress')}</div>
+        <div class="share-card-big">${learned} <span class="share-card-unit">/ ${totalConcepts}</span></div>
+        <div class="share-card-bar"><div class="share-card-bar-fill" style="width:${learnedPct}%"></div></div>
+        <div class="share-card-small">${learnedPct}% 已习得</div>
+      </div>
+      <div class="share-card-divider"></div>
+      <div class="share-card-section">
+        <div class="share-card-label">${t('share_quiz')}</div>
+        <div class="share-card-rank">${icon} ${rank}</div>
+        <div class="share-card-small">${t('quiz_score_prefix')} ${score} / ${total} ${t('quiz_score_suffix')} · ${pct}%</div>
+      </div>
+      <div class="share-card-divider"></div>
+      <div class="share-card-url">ai-magic-dict.pages.dev</div>
+      <div class="share-card-hint">${t('share_hint')}</div>
+      <button class="share-close-btn">${t('share_close')}</button>
+    </div>`;
+
+  overlay.querySelector('.share-close-btn').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 function startGlobalReview() {
