@@ -152,6 +152,7 @@ function renderHome() {
         <div class="stat-item"><span class="stat-value">${total}</span><span class="stat-label">${t('stat_total')}</span></div>
         <div class="stat-item"><span class="stat-value">${unlockedCount}</span><span class="stat-label">${t('stat_open')}</span></div>
       </div>
+      ${learned > 0 ? `<button class="review-btn" data-action="start-review">${t('review_btn')}</button>` : ''}
       <div class="divider"><div class="divider-line"></div><span class="divider-gem">✦</span><div class="divider-line"></div></div>
     </div>
     <div class="modules-section">
@@ -318,23 +319,22 @@ function renderQuiz() {
   if (qs.done) return renderQuizResult();
 
   const q = qs.questions[qs.current];
-  const m = mod(State.moduleId);
+  const isReview = qs.isReview;
+  const m = isReview ? null : mod(State.moduleId);
   const dots = qs.questions.map((_, i) =>
     `<div class="quiz-dot ${i < qs.current ? 'done' : i === qs.current ? 'active' : ''}"></div>`
   ).join('');
 
+  const breadcrumb = isReview
+    ? `<span class="breadcrumb-link" data-nav="home">${t('home')}</span><span class="breadcrumb-sep">›</span><span>${t('review_title')}</span>`
+    : `<span class="breadcrumb-link" data-nav="home">${t('home')}</span><span class="breadcrumb-sep">›</span><span class="breadcrumb-link" data-nav="module" data-module-id="${m.id}">${mName(m)}</span><span class="breadcrumb-sep">›</span><span>${t('quiz_title')}</span>`;
+
   return `
     <div class="quiz-page">
-      <div class="breadcrumb">
-        <span class="breadcrumb-link" data-nav="home">${t('home')}</span>
-        <span class="breadcrumb-sep">›</span>
-        <span class="breadcrumb-link" data-nav="module" data-module-id="${m.id}">${mName(m)}</span>
-        <span class="breadcrumb-sep">›</span>
-        <span>${t('quiz_title')}</span>
-      </div>
+      <div class="breadcrumb">${breadcrumb}</div>
       <div class="quiz-header">
-        <div class="quiz-title">${m.icon} ${t('quiz_title')}</div>
-        <div class="quiz-subtitle">${mName(m)}</div>
+        <div class="quiz-title">${isReview ? '🔮' : m.icon} ${isReview ? t('review_title') : t('quiz_title')}</div>
+        <div class="quiz-subtitle">${isReview ? qs.questions.length + ' ' + t('review_sub') : mName(m)}</div>
         <div class="quiz-progress-dots">${dots}</div>
       </div>
       <div class="quiz-question-card">
@@ -355,13 +355,20 @@ function renderQuiz() {
 
 function renderQuizResult() {
   const qs = State.quizState;
-  const m = mod(State.moduleId);
+  const isReview = qs.isReview;
+  const m = isReview ? null : mod(State.moduleId);
   const pct = Math.round(qs.score / qs.questions.length * 100);
   let rank, icon;
   if (pct === 100) { rank = t('rank_master'); icon = '🏆'; }
   else if (pct >= 80) { rank = t('rank_senior'); icon = '⭐'; }
   else if (pct >= 60) { rank = t('rank_junior'); icon = '✨'; }
   else { rank = t('rank_novice'); icon = '🌱'; }
+
+  const actions = isReview
+    ? `<button class="btn-primary" data-nav="home">${t('home')}</button>
+       <button class="btn-secondary" data-action="start-review">${t('retry')}</button>`
+    : `<button class="btn-primary" data-nav="module" data-module-id="${m.id}">${t('back_to_module')}</button>
+       <button class="btn-secondary" data-action="retry-quiz" data-module-id="${m.id}">${t('retry')}</button>`;
 
   return `
     <div class="quiz-page">
@@ -370,10 +377,7 @@ function renderQuizResult() {
         <div class="quiz-result-title">${t('quiz_result_title')}</div>
         <div class="quiz-result-score">${t('quiz_score_prefix')} ${qs.score} / ${qs.questions.length} ${t('quiz_score_suffix')}（${pct}%）</div>
         <div class="quiz-result-rank">${rank}</div>
-        <div class="quiz-result-actions">
-          <button class="btn-primary" data-nav="module" data-module-id="${m.id}">${t('back_to_module')}</button>
-          <button class="btn-secondary" data-action="retry-quiz" data-module-id="${m.id}">${t('retry')}</button>
-        </div>
+        <div class="quiz-result-actions">${actions}</div>
       </div>
     </div>`;
 }
@@ -483,6 +487,10 @@ function attachEvents() {
     btn.addEventListener('click', () => startQuiz(parseInt(btn.dataset.moduleId)));
   });
 
+  document.querySelectorAll('[data-action="start-review"]').forEach(btn => {
+    btn.addEventListener('click', startGlobalReview);
+  });
+
   document.querySelectorAll('.quiz-option').forEach(opt => {
     opt.addEventListener('click', () => {
       if (opt.disabled) return;
@@ -512,6 +520,15 @@ function attachEvents() {
     btn.addEventListener('click', () => navigate('concept', { conceptId: btn.dataset.conceptId }));
   });
 
+}
+
+function startGlobalReview() {
+  const learnedWithQuiz = allConcepts().filter(c => Progress.isLearned(c.id) && c.quiz);
+  const pool = learnedWithQuiz.length >= 5 ? learnedWithQuiz : allConcepts().filter(c => c.quiz);
+  const questions = [...pool].sort(() => Math.random() - 0.5).slice(0, 10).map(c => c.quiz);
+  State.moduleId = null;
+  State.quizState = { questions, current: 0, score: 0, done: false, isReview: true };
+  navigate('quiz');
 }
 
 function startQuiz(mid) {
