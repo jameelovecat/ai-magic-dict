@@ -1,6 +1,6 @@
-export async function onRequestGet({ env }) {
+export async function onRequestGet() {
   return Response.json(
-    { clientId: env.GITHUB_CLIENT_ID || '' },
+    { clientId: 'Ov23liy7HBaC03U3Svx1' },
     { headers: { 'Cache-Control': 'no-store' } }
   );
 }

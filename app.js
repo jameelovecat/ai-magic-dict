@@ -65,22 +65,70 @@ function updateNavbar() {
   document.querySelector('.nav-logo').textContent = t('site_name');
 }
 
-// ── GitHub Gist 同步 ──
-let _ghClientId = '';
-
-async function loadGithubConfig() {
+// ── GitHub Device Flow 授权 ──
+async function githubLogin() {
+  showToast('正在连接 GitHub…');
   try {
-    const resp = await fetch('/auth/config');
-    if (resp.ok) { const d = await resp.json(); _ghClientId = d.clientId || ''; }
-  } catch {}
+    const resp = await fetch('/auth/device-code', { method: 'POST' });
+    if (!resp.ok) throw new Error('server error');
+    const { device_code, user_code, verification_uri, interval } = await resp.json();
+    if (!device_code) throw new Error('连接失败，请稍后重试');
+    showDeviceCodeModal(user_code, verification_uri, device_code, interval || 5);
+  } catch (e) { showToast('连接失败：' + e.message); }
 }
 
-function githubLogin() {
-  if (!_ghClientId) { showToast(t('gh_not_configured')); return; }
-  const state = Math.random().toString(36).slice(2);
-  sessionStorage.setItem('gh_oauth_state', state);
-  const redirectUri = encodeURIComponent(`${location.origin}/auth/callback`);
-  location.href = `https://github.com/login/oauth/authorize?client_id=${_ghClientId}&scope=gist&redirect_uri=${redirectUri}&state=${state}`;
+function showDeviceCodeModal(user_code, verification_uri, device_code, interval) {
+  const overlay = document.createElement('div');
+  overlay.className = 'share-overlay';
+  overlay.innerHTML = `
+    <div class="share-card" style="max-width:360px;text-align:center">
+      <div class="share-card-logo" style="font-size:18px">连接 GitHub</div>
+      <div class="share-card-divider"></div>
+      <p style="color:var(--text2);font-size:13px;margin:12px 0 6px">1. 点击下方按钮打开 GitHub</p>
+      <a href="${verification_uri}" target="_blank" rel="noopener"
+         style="display:inline-block;padding:8px 20px;background:var(--gold-dim);border:1px solid var(--border2);border-radius:8px;color:var(--gold);font-size:13px;text-decoration:none;margin-bottom:16px">
+        打开 github.com/device ›
+      </a>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:8px">2. 输入以下代码：</p>
+      <div style="font-family:monospace;font-size:30px;font-weight:700;letter-spacing:6px;color:var(--gold);background:var(--bg-mid);padding:12px 20px;border-radius:8px;display:inline-block">${user_code}</div>
+      <div id="device-status" style="color:var(--text3);font-size:12px;margin-top:14px">授权完成后此窗口自动关闭…</div>
+      <button class="share-close-btn" id="device-cancel" style="margin-top:16px">取消</button>
+    </div>`;
+
+  let stopped = false;
+  const cancel = () => { stopped = true; overlay.remove(); };
+  overlay.querySelector('#device-cancel').addEventListener('click', cancel);
+  overlay.addEventListener('click', e => { if (e.target === overlay) cancel(); });
+  document.body.appendChild(overlay);
+
+  const statusEl = overlay.querySelector('#device-status');
+  const poll = setInterval(async () => {
+    if (stopped) { clearInterval(poll); return; }
+    try {
+      const resp = await fetch('/auth/device-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_code }),
+      });
+      const data = await resp.json();
+      if (data.access_token) {
+        clearInterval(poll);
+        localStorage.setItem(GistSync.tokenKey, data.access_token);
+        overlay.remove();
+        showToast('✓ GitHub 已连接，正在同步进度…');
+        render();
+        setTimeout(() => GistSync.sync(), 600);
+      } else if (data.error === 'access_denied') {
+        clearInterval(poll); overlay.remove(); showToast('授权被取消');
+      } else if (data.error === 'expired_token') {
+        clearInterval(poll); overlay.remove(); showToast('授权码已过期，请重试');
+      } else if (data.error === 'slow_down') {
+        clearInterval(poll);
+        setTimeout(() => { if (!stopped) setInterval(poll, (interval + 5) * 1000); }, 0);
+      }
+      // authorization_pending: keep polling
+    } catch {}
+  }, interval * 1000);
 }
 
 const GistSync = {
@@ -737,27 +785,6 @@ function initSearch() {
 
 document.addEventListener('DOMContentLoaded', () => {
   Streak.update();
-  loadGithubConfig();
-
-  // 处理 GitHub OAuth 回调
-  const hash = window.location.hash;
-  if (hash.startsWith('#gh_token=') || hash.includes('gh_token=')) {
-    const params = new URLSearchParams(hash.slice(1));
-    const token = params.get('gh_token');
-    const returnedState = params.get('gh_state') || '';
-    const savedState = sessionStorage.getItem('gh_oauth_state') || '';
-    history.replaceState(null, '', window.location.pathname);
-    if (token && (!savedState || returnedState === savedState)) {
-      localStorage.setItem(GistSync.tokenKey, decodeURIComponent(token));
-      sessionStorage.removeItem('gh_oauth_state');
-      showToast('✓ GitHub 已连接，正在同步进度…');
-      setTimeout(() => GistSync.sync(), 600);
-    }
-  } else if (hash.includes('auth_error=')) {
-    const params = new URLSearchParams(hash.slice(1));
-    history.replaceState(null, '', window.location.pathname);
-    showToast('GitHub 连接失败：' + decodeURIComponent(params.get('auth_error') || ''));
-  }
 
   // 开场动画：每个 session 只播一次
   const introEl = document.getElementById('intro-screen');
