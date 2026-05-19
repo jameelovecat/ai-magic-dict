@@ -1,6 +1,26 @@
 /* AI魔法词典 — 羊皮卷主题 */
 
-@import url('https://fonts.loli.net/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=Noto+Serif+SC:wght@300;400;500&family=Inter:wght@300;400;500&display=swap');
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('fonts/cinzel.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/cinzel-decorative-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/cinzel-decorative-700.woff2') format('woff2');
+}
 
 /* ── 开场动画：猫头鹰送信 ── */
 #intro-screen {
