@@ -2,7 +2,7 @@
 
 > 解锁 AI 世界的每一道咒语 — 系统学习 90+ 个 AI 核心概念
 
-**线上地址：** https://ai-magic-dict.pages.dev
+**线上地址：** https://aimagicdict.jamee-zhao923.workers.dev
 
 ---
 
